@@ -25,3 +25,29 @@ export async function query(
     throw new Error("Error: Query execution failed.")
   }
 }
+
+/**
+ * Usage
+ */
+
+// async function handler(
+//   req: NextApiRequest,
+//   res: NextApiResponse<Data>
+// ) {
+//   if (req.method == "GET") {
+//     try {
+//       const result = await query(`SELECT * FEOM todos`)
+//       res.status(200).json(result)
+//     } catch (e) {
+//       let msg = ""
+//       if (e instanceof Error) {
+//         msg = e.message
+//       } else {
+//         msg = "Error: Query execution failed."
+//       }
+//       res.status(500).json({ message: msg })
+//     }
+//   } else {
+//     res.status(405).json({ message: "Method Not Allowed" })
+//   }
+// }
