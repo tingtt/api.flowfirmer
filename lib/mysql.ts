@@ -1,13 +1,11 @@
-import mysql from "serverless-mysql"
+import mysql from "mysql2/promise"
 
-export const db = mysql({
-  config: {
-    host: process.env.MYSQL_HOST,
-    database: process.env.MYSQL_DATABASE,
-    user: process.env.MYSQL_USERNAME,
-    password: process.env.MYSQL_PASSWORD,
-    port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT) : 3306,
-  },
+export const db = mysql.createConnection({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USERNAME,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT) : 3306,
 })
 
 export async function query(
@@ -15,8 +13,7 @@ export async function query(
   values: (string | number)[] | string | number = []
 ) {
   try {
-    const results = await db.query(q, values)
-    await db.end()
+    const [results] = await (await db).execute(q, values)
     return results
   } catch (e) {
     if (e instanceof Error) {
