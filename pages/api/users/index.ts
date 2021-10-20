@@ -90,7 +90,7 @@ export default async function handler(
     // 登録情報取得用のエンドポイント
     res.setHeader("Location", `/${user_id}`)
 
-    res.status(200).json({ message: "Success", user_name: req.body.name })
+    res.status(201).json({ message: "Success", user_name: req.body.name })
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
