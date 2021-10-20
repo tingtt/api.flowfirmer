@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken"
 
 type Data = {
   message: string
+  user_name?: string
 }
 
 export default async function handler(
@@ -39,7 +40,7 @@ export default async function handler(
         `SELECT password FROM users WHERE email = ?`,
         [req.body.email]
       )
-      if (queryResult.length != 0) {
+      if (Array.isArray(queryResult) && queryResult.length != 0) {
         res.status(422).json({ message: "Email address already registered." })
         return
       }
@@ -48,7 +49,7 @@ export default async function handler(
       const hashedPassword = await hash(req.body.password, 10)
 
       // クエリ発行
-      const insertQueryResult = await query(
+      const insertQueryResult: any = await query(
         `INSERT INTO users (name, email, password) values (?, ?, ?);`,
         [req.body.name, req.body.email, hashedPassword]
       )
@@ -89,7 +90,7 @@ export default async function handler(
     // 登録情報取得用のエンドポイント
     res.setHeader("Location", `/${user_id}`)
 
-    res.status(200).json({ message: "Success" })
+    res.status(200).json({ message: "Success", user_name: req.body.name })
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }

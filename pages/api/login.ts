@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken"
 
 type Data = {
   message: string
+  user_name?: string
 }
 
 export default async function handler(
@@ -34,13 +35,24 @@ export default async function handler(
 
     let user_id: number
     let password: string
+    let user_name: string
 
     try {
+      // privateKeyの確認
+      if (typeof process.env.JWT_SECRET != "string") {
+        throw new Error("Error: JWT secret does not exits")
+      }
+
       // クエリ発行
-      const result = await query(
-        `SELECT id, password FROM users WHERE email = ?;`,
+      const result: any = await query(
+        `SELECT id, name, password FROM users WHERE email = ?;`,
         [req.body.email]
       )
+
+      // クエリの結果のチェック
+      if (!Array.isArray(result)) {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
 
       // emailが一致するユーザーが登録されていない
       if (result.length != 1) {
@@ -48,13 +60,18 @@ export default async function handler(
         return
       }
 
-      user_id = result[0].number
-      password = result[0].password
-
-      // privateKeyの確認
-      if (typeof process.env.JWT_SECRET != "string") {
-        throw new Error("Error: JWT secret does not exits")
+      // クエリの結果のチェック
+      if (
+        !result[0].hasOwnProperty("id") ||
+        !result[0].hasOwnProperty("name") ||
+        !result[0].hasOwnProperty("password")
+      ) {
+        throw new Error("Error: Query returned unsupported resopnse")
       }
+
+      user_id = result[0].id
+      password = result[0].password
+      user_name = result[0].name
     } catch (e) {
       let msg = ""
       if (e instanceof Error) {
@@ -82,7 +99,7 @@ export default async function handler(
     // JWTを渡す
     res.setHeader("Set-Cookie", `TOKEN=${token}; Path=/; HttpOnly`)
 
-    res.status(200).json({ message: "Success" })
+    res.status(200).json({ message: "Success", user_name: user_name })
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
