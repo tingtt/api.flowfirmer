@@ -116,9 +116,63 @@ export default async function handler(
       res.status(500).json({ message: msg })
       return
     }
+  } else if (req.method == "PATCH") {
+    // Content-Type: "application/json"が指定されているかチェック
+    if (
+      !req.headers.hasOwnProperty("content-type") ||
+      req.headers["content-type"] != "application/json"
+    ) {
+      res.status(415).json({ message: "Unsupported media type" })
+      return
+    }
+
+    try {
+      // クエリ発行
+      const updateQueryResult: any = await query(
+        `UPDATE tags SET ${Object.keys(req.body)
+          .filter((key) =>
+            [
+              "name",
+              "theme_color",
+              "parent_id",
+              "pinned",
+              "order",
+              "hidden",
+            ].includes(key)
+          )
+          .map((key) => `${key} = ?`)
+          .join(", ")} WHERE user_id = ? AND id = ?;`,
+        [...Object.values<any>(req.body), user_id, tag_id]
+      )
+
+      // クエリ結果のチェック
+      if (!updateQueryResult.hasOwnProperty("changedRows")) {
+        throw new Error("Error: Query execution failed.")
+      }
+      if (typeof updateQueryResult.changedRows != "number") {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
+
+      if (updateQueryResult.changedRows == 1) {
+        res.status(200).json({ message: "Updated" })
+      } else {
+        res.status(403).json({ message: "Tag not found" })
+      }
+      return
+    } catch (e) {
+      let msg = ""
+      if (e instanceof Error) {
+        msg = e.message
+      } else {
+        msg = "Error: Query execution failed."
+      }
+      res.status(500).json({ message: msg })
+      return
+    }
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
 }
 
 //curl -v -X GET -H "Cookie: TOKEN=<token>" localhost/api/tags/<tag_id>
+//curl -v -X PATCH -H "Content-Type: application/json" -H "Cookie: TOKEN=<token>" -d '{"name":"new_name"}' localhost/api/tags/<tag_id>
