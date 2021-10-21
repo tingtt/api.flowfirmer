@@ -146,6 +146,9 @@ export default async function handler(
       )
 
       // クエリ結果のチェック
+      if (typeof updateQueryResult != "object") {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
       if (!updateQueryResult.hasOwnProperty("changedRows")) {
         throw new Error("Error: Query execution failed.")
       }
@@ -169,6 +172,37 @@ export default async function handler(
       res.status(500).json({ message: msg })
       return
     }
+  } else if (req.method == "DELETE") {
+    try {
+      const deleteQueryResult: any = await query(
+        "DELETE FROM tags WHERE user_id = ? AND id = ?",
+        [user_id, tag_id]
+      )
+
+      // クエリ結果のチェック
+      if (!deleteQueryResult.hasOwnProperty("affectedRows")) {
+        throw new Error("Error: Query execution failed.")
+      }
+      if (typeof deleteQueryResult.affectedRows != "number") {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
+
+      if (deleteQueryResult.changedRows == 1) {
+        res.status(204).json({ message: "Deleted" })
+      } else {
+        res.status(403).json({ message: "Tag not found" })
+      }
+      return
+    } catch (e) {
+      let msg = ""
+      if (e instanceof Error) {
+        msg = e.message
+      } else {
+        msg = "Error: Query execution failed."
+      }
+      res.status(500).json({ message: msg })
+      return
+    }
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
@@ -176,3 +210,4 @@ export default async function handler(
 
 //curl -v -X GET -H "Cookie: TOKEN=<token>" localhost/api/tags/<tag_id>
 //curl -v -X PATCH -H "Content-Type: application/json" -H "Cookie: TOKEN=<token>" -d '{"name":"new_name"}' localhost/api/tags/<tag_id>
+//curl -v -X DELETE -H "Cookie: TOKEN=<token>" localhost/api/tags/<tag_id>
