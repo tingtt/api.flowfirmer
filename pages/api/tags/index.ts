@@ -11,6 +11,7 @@ type Tag = {
   pinned: boolean
   order?: number
   hidden?: boolean
+  sub_tags?: Array<Tag>
 }
 
 type Data =
@@ -18,6 +19,7 @@ type Data =
       message: string
     }
   | Tag
+  | Tag[]
 
 export default async function handler(
   req: NextApiRequest,
@@ -161,6 +163,54 @@ export default async function handler(
             pinned: pinned,
           }
     )
+  } else if (req.method == "GET") {
+    try {
+      // クエリ発行
+      const selectQueryResult: any = await query(
+        Boolean(req.query.show_hidden)
+          ? "SELECT id, name, theme_color, pinned, `order`, hidden FROM tags WHERE user_id = ? AND parent_id is NULL;"
+          : "SELECT id, name, theme_color, pinned, `order` FROM tags WHERE user_id = ? AND parent_id is NULL AND hidden = false;",
+        [user_id]
+      )
+
+      // クエリ結果のチェック
+      if (!Array.isArray(selectQueryResult)) {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
+
+      const embedResult: any = await Promise.all(
+        selectQueryResult.map(async (value: any) => {
+          // クエリ発行
+          const sub_tags: any = await query(
+            Boolean(req.query.show_hidden)
+              ? "SELECT id, name, theme_color, pinned, `order`, hidden FROM tags WHERE user_id = ? AND parent_id = ?;"
+              : "SELECT id, name, theme_color, pinned, `order` FROM tags WHERE user_id = ? AND parent_id = ? AND hidden = false;",
+            [user_id, value.id]
+          )
+
+          // クエリ結果のチェック
+          if (!Array.isArray(sub_tags)) {
+            throw new Error("Error: Query returned unsupported resopnse")
+          }
+          if (sub_tags.length != 0) {
+            value.sub_tags = sub_tags
+          }
+          return value
+        })
+      )
+
+      res.status(200).json(embedResult as Tag[])
+      return
+    } catch (e) {
+      let msg = ""
+      if (e instanceof Error) {
+        msg = e.message
+      } else {
+        msg = "Error: Query execution failed."
+      }
+      res.status(500).json({ message: msg })
+      return
+    }
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
