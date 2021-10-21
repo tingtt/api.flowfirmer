@@ -60,6 +60,9 @@ export default async function handler(
       )
 
       // insertIdの確認
+      if (typeof insertQueryResult != "object") {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
       if (!insertQueryResult.hasOwnProperty("insertId")) {
         throw new Error("Error: Query execution failed.")
       }
