@@ -84,7 +84,7 @@ export default async function handler(
         throw new Error("Error: Query returned unsupported resopnse")
       }
       if (selectQueryResult.length == 0) {
-        res.status(403).json({ message: "Tag not found" })
+        res.status(404).json({ message: "Tag not found" })
         return
       }
       const embedResult: any = await Promise.all(
@@ -159,7 +159,7 @@ export default async function handler(
       if (updateQueryResult.changedRows == 1) {
         res.status(200).json({ message: "Updated" })
       } else {
-        res.status(403).json({ message: "Tag not found" })
+        res.status(404).json({ message: "Tag not found" })
       }
       return
     } catch (e) {
@@ -190,7 +190,7 @@ export default async function handler(
       if (deleteQueryResult.changedRows == 1) {
         res.status(204).json({ message: "Deleted" })
       } else {
-        res.status(403).json({ message: "Tag not found" })
+        res.status(404).json({ message: "Tag not found" })
       }
       return
     } catch (e) {
