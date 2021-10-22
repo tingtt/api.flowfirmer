@@ -3,10 +3,15 @@ import { query } from "../../../lib/mysql"
 import { hash } from "bcrypt"
 import jwt from "jsonwebtoken"
 
-type Data = {
-  message: string
-  user_name?: string
-}
+type Data =
+  | {
+      message: string
+    }
+  | {
+      id: number
+      name: string
+      email: string
+    }
 
 export default async function handler(
   req: NextApiRequest,
@@ -55,6 +60,9 @@ export default async function handler(
       )
 
       // insertIdの確認
+      if (typeof insertQueryResult != "object") {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
       if (!insertQueryResult.hasOwnProperty("insertId")) {
         throw new Error("Error: Query execution failed.")
       }
@@ -88,9 +96,13 @@ export default async function handler(
     res.setHeader("Set-Cookie", `TOKEN=${token}; Path=/; HttpOnly`)
 
     // 登録情報取得用のエンドポイント
-    res.setHeader("Location", `/${user_id}`)
+    res.setHeader("Location", `users/${user_id}`)
 
-    res.status(200).json({ message: "Success", user_name: req.body.name })
+    res.status(201).json({
+      id: user_id,
+      name: req.body.name,
+      email: req.body.email,
+    })
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
