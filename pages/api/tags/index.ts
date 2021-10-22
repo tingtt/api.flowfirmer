@@ -217,3 +217,4 @@ export default async function handler(
 }
 
 //curl -v -X POST -H "Content-Type: application/json" -H "Cookie: TOKEN=<token>" -d '{"name":"tag_name"}' localhost/api/tags
+//curl -v -X GET -H "Cookie: TOKEN=<token>" localhost/api/tags?show_hidden=false
