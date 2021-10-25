@@ -240,9 +240,56 @@ export default async function handler(
       res.status(500).json({ message: msg })
       return
     }
+  } else if (req.method == "GET") {
+    try {
+      // クエリ発行
+      const selectQueryResult: any = await query(
+        `SELECT
+          documents.id, documents.title, documents.url,
+          COALESCE(CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT(DISTINCT '{\"id\":', tags.id, ',\"name\":\"', tags.name, '\",\"theme_color\":\"', tags.theme_color, '\",\"parent_id\":', COALESCE(tags.parent_id, 'null'), ',\"pinned\":', tags.pinned, ',\"order\":', tags.\`order\`, ',\"hidden\":', tags.hidden, '}')), ']'), '[]') as tags,
+          COALESCE(CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT(DISTINCT '{\"id\":', document_tags.id, ',\"name\":\"', document_tags.name, '\"}')), ']'), '[]') as document_tags
+        FROM
+          documents
+        LEFT JOIN document_tag_maps
+          ON documents.id = document_tag_maps.document_id
+        LEFT JOIN tags
+          ON document_tag_maps.tag_id = tags.id
+        LEFT JOIN document_document_tag_maps
+          ON documents.id = document_document_tag_maps.document_id
+        LEFT JOIN document_tags
+          ON document_document_tag_maps.document_tag_id = document_tags.id
+        WHERE documents.user_id = ?
+        GROUP BY documents.id;`,
+        [user_id]
+      )
+
+      // クエリ結果のチェック
+      if (!Array.isArray(selectQueryResult)) {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
+
+      const parsedSelectQueryResult = selectQueryResult.map((row) => {
+        row.tags = JSON.parse(row.tags)
+        row.document_tags = JSON.parse(row.document_tags)
+        return row
+      })
+
+      res.status(200).json(parsedSelectQueryResult as Document[])
+      return
+    } catch (e) {
+      let msg = ""
+      if (e instanceof Error) {
+        msg = e.message
+      } else {
+        msg = "Error: Query execution failed."
+      }
+      res.status(500).json({ message: msg })
+      return
+    }
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
 }
 
 //curl -v -X POST -H "Content-Type: application/json" -H "Cookie: TOKEN=<token>" -d '{"title":"document1","url":"https://~~~"}' localhost/api/documents
+//curl -v -X GET -H "Cookie: TOKEN=<token>" localhost/api/documents
