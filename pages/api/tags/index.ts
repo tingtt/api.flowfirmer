@@ -167,10 +167,19 @@ export default async function handler(
     try {
       // クエリ発行
       const selectQueryResult: any = await query(
-        Boolean(req.query.show_hidden)
-          ? "SELECT id, name, theme_color, pinned, `order`, hidden FROM tags WHERE user_id = ? AND parent_id is NULL;"
-          : "SELECT id, name, theme_color, pinned, `order` FROM tags WHERE user_id = ? AND parent_id is NULL AND hidden = false;",
-        [user_id]
+        `SELECT
+          parent.id, parent.name, parent.theme_color, parent.pinned, parent.\`order\`, parent.hidden,
+          CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT('{\"id\":', child.id, ',\"name\":\"', child.name, '\",\"theme_color\":\"', child.theme_color, '\",\"parent_id\":', child.parent_id, ',\"pinned\":', child.pinned, ',\"order\":', child.\`order\`, ',\"hidden\":', child.hidden, '}')), ']') as tags
+        FROM
+          tags parent
+        INNER JOIN tags child
+          ON parent.id = child.parent_id
+        WHERE
+          parent.user_id = ?
+          AND child.user_id = ?
+          AND parent.parent_id is NULL
+        GROUP BY parent.id;`,
+        [user_id, user_id]
       )
 
       // クエリ結果のチェック
@@ -178,28 +187,12 @@ export default async function handler(
         throw new Error("Error: Query returned unsupported resopnse")
       }
 
-      const embedResult: any = await Promise.all(
-        selectQueryResult.map(async (value: any) => {
-          // クエリ発行
-          const sub_tags: any = await query(
-            Boolean(req.query.show_hidden)
-              ? "SELECT id, name, theme_color, pinned, `order`, hidden FROM tags WHERE user_id = ? AND parent_id = ?;"
-              : "SELECT id, name, theme_color, pinned, `order` FROM tags WHERE user_id = ? AND parent_id = ? AND hidden = false;",
-            [user_id, value.id]
-          )
+      const parsedSelectQueryResult = selectQueryResult.map((row) => {
+        row.tags = JSON.parse(row.tags)
+        return row
+      })
 
-          // クエリ結果のチェック
-          if (!Array.isArray(sub_tags)) {
-            throw new Error("Error: Query returned unsupported resopnse")
-          }
-          if (sub_tags.length != 0) {
-            value.sub_tags = sub_tags
-          }
-          return value
-        })
-      )
-
-      res.status(200).json(embedResult as Tag[])
+      res.status(200).json(parsedSelectQueryResult as Tag[])
       return
     } catch (e) {
       let msg = ""
