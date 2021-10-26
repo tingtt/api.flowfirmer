@@ -220,7 +220,7 @@ export default async function handler(
       }
 
       // 登録情報取得用のエンドポイント
-      res.setHeader("Location", `tags/${document_id}`)
+      res.setHeader("Location", `documents/${document_id}`)
 
       res.status(201).json({
         id: document_id,
