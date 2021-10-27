@@ -172,7 +172,7 @@ export default async function handler(
           CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT('{\"id\":', child.id, ',\"name\":\"', child.name, '\",\"theme_color\":\"', child.theme_color, '\",\"parent_id\":', child.parent_id, ',\"pinned\":', child.pinned, ',\"order\":', child.\`order\`, ',\"hidden\":', child.hidden, '}')), ']') as tags
         FROM
           tags parent
-        INNER JOIN tags child
+        LEFT JOIN tags child
           ON parent.id = child.parent_id
         WHERE
           parent.user_id = ?
