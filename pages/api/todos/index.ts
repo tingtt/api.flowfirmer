@@ -324,9 +324,56 @@ export default async function handler(
       res.status(500).json({ message: msg })
       return
     }
+  } else if (req.method == "GET") {
+    try {
+      // クエリ発行
+      const selectQueryResult: any = await query(
+        `SELECT
+          todos.id, todos.name, todos.description, date_format(todos.date, '%Y-%m-%d') date, time_format(todos.time, '%H:%i') time, todos.execution_time,
+          CONCAT('{\"id\":', terms.id, ',\"name\":\"', terms.name, '\",\"description\":', COALESCE(CONCAT('\"', terms.description, '\"'), 'null'), ',\"start\":\"', date_format(terms.start, '%Y-%m-%d'), '\",\"end\":\"', date_format(terms.end, '%Y-%m-%d'), '\"}') term,
+          COALESCE(CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT('{\"id\":', tags.id, ',\"name\":\"', tags.name, '\",\"theme_color\":\"', tags.theme_color, '\",\"parent_id\":', COALESCE(tags.parent_id, 'null'), ',\"pinned\":', tags.pinned, ',\"order\":', tags.\`order\`, ',\"hidden\":', tags.hidden, '}')), ']'), '[]') as tags,
+          todos.completed
+        FROM
+          todos
+        LEFT JOIN terms
+          ON todos.term_id = terms.id
+        LEFT JOIN todo_tag_maps
+          ON todos.id = todo_tag_maps.todo_id
+        LEFT JOIN tags
+          ON todo_tag_maps.tag_id = tags.id
+        WHERE
+          todos.user_id = ?
+        GROUP BY todos.id`,
+        [user_id]
+      )
+
+      // クエリ結果のチェック
+      if (!Array.isArray(selectQueryResult)) {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
+
+      const parsedSelectQueryResult = selectQueryResult.map((row) => {
+        row.tags = JSON.parse(row.tags)
+        row.term = JSON.parse(row.term)
+        return row
+      })
+
+      res.status(200).json(parsedSelectQueryResult as Todo[])
+      return
+    } catch (e) {
+      let msg = ""
+      if (e instanceof Error) {
+        msg = e.message
+      } else {
+        msg = "Error: Query execution failed."
+      }
+      res.status(500).json({ message: msg })
+      return
+    }
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
 }
 
 //curl -v -X POST -H "Content-Type: application/json" -H "Cookie: TOKEN=<token>" -d '{"name":"todo1"}' localhost/api/todos
+//curl -v -X GET -H "Cookie: TOKEN=<token>" localhost/api/todos
