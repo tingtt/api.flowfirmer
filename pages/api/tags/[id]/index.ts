@@ -76,9 +76,17 @@ export default async function handler(
     try {
       // クエリ発行
       const selectQueryResult: any = await query(
-        "SELECT id, name, parent_id, theme_color, pinned, `order`, hidden FROM tags WHERE user_id = ? AND id = ?;",
-        [user_id, tag_id]
+        `SELECT
+          parent.id, parent.name, parent.theme_color, parent.pinned, parent.\`order\`, parent.hidden,
+          CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT('{\"id\":', child.id, ',\"name\":\"', child.name, '\",\"theme_color\":\"', child.theme_color, '\",\"parent_id\":', child.parent_id, ',\"pinned\":', child.pinned, ',\"order\":', child.\`order\`, ',\"hidden\":', child.hidden, '}')), ']') as tags
+        FROM
+          tags parent
+        LEFT JOIN tags child ON parent.id = child.parent_id
+        WHERE parent.user_id = ? AND child.user_id = ? AND parent.id = ?
+        GROUP BY parent.id;`,
+        [user_id, user_id, tag_id]
       )
+
       // クエリ結果のチェック
       if (!Array.isArray(selectQueryResult)) {
         throw new Error("Error: Query returned unsupported resopnse")
@@ -87,24 +95,13 @@ export default async function handler(
         res.status(404).json({ message: "Tag not found" })
         return
       }
-      const embedResult: any = await Promise.all(
-        selectQueryResult.map(async (value: any) => {
-          // クエリ発行
-          const sub_tags: any = await query(
-            "SELECT id, name, theme_color, pinned, `order`, hidden FROM tags WHERE user_id = ? AND parent_id = ?;",
-            [user_id, value.id]
-          )
-          // クエリ結果のチェック
-          if (!Array.isArray(sub_tags)) {
-            throw new Error("Error: Query returned unsupported resopnse")
-          }
-          if (sub_tags.length != 0) {
-            value.sub_tags = sub_tags
-          }
-          return value
-        })
-      )
-      res.status(200).json(embedResult[0])
+
+      const parsedSelectQueryResult = selectQueryResult.map((row) => {
+        row.tags = JSON.parse(row.tags)
+        return row
+      })
+
+      res.status(200).json(parsedSelectQueryResult[0] as Tag)
       return
     } catch (e) {
       let msg = ""
