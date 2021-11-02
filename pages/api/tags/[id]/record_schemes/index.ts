@@ -181,9 +181,35 @@ export default async function handler(
       default_graph_type: default_graph_type,
       tag: tag,
     })
+  } else if (req.method == "GET") {
+    try {
+      // クエリ発行
+      const selectQueryResult: any = await query(
+        `SELECT id, name, unit_name, default_graph_type FROM free_record_schemes schemes WHERE tag_id = ?;`,
+        [tag_id]
+      )
+
+      // クエリ結果のチェック
+      if (!Array.isArray(selectQueryResult)) {
+        throw new Error("Error: Query returned unsupported resopnse")
+      }
+
+      res.status(200).json(selectQueryResult as RecordScheme[])
+      return
+    } catch (e) {
+      let msg = ""
+      if (e instanceof Error) {
+        msg = e.message
+      } else {
+        msg = "Error: Query execution failed."
+      }
+      res.status(500).json({ message: msg })
+      return
+    }
   } else {
     res.status(405).json({ message: "Method not allowed" })
   }
 }
 
 //curl -v -X POST -H "Content-Type: application/json" -H "Cookie: TOKEN=<token>" -d '{"name":"tag_name", "unit_name":"回", "default_graph_type":"sum"}' localhost/api/tags/[id]/record_schemes
+//curl -v -X GET -H "Cookie: TOKEN=<token>" localhost/api/tags/[id]/record_schemes
