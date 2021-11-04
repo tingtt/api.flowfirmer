@@ -209,7 +209,7 @@ export default async function handler(
         throw new Error("Error: Query returned unsupported resopnse")
       }
 
-      if (deleteQueryResult.changedRows == 1) {
+      if (deleteQueryResult.affectedRows == 1) {
         res.status(204).json({ message: "Deleted" })
       } else {
         res.status(404).json({ message: "Tag not found" })
