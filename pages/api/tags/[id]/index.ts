@@ -162,7 +162,7 @@ export default async function handler(
       // クエリ発行
       const updateQueryResult: any = await query(
         `UPDATE tags SET ${updateColumns.map(
-          (column) => column.key
+          (column) => `${column.key} = ?`
         )} WHERE user_id = ? AND id = ?;`,
         [...updateColumns.map((column) => column.value), user_id, tag_id]
       )
