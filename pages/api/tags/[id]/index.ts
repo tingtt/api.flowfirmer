@@ -123,23 +123,48 @@ export default async function handler(
       return
     }
 
+    const updateColumns = Object.keys(req.body)
+      .filter((key) =>
+        [
+          "name",
+          "theme_color",
+          "parent_id",
+          "pinned",
+          "order",
+          "hidden",
+        ].includes(key)
+      )
+      .map((key) => {
+        return { key: key, value: req.body[key] }
+      })
+
+    // 更新できないキーが含まれていなかったかチェック
+    if (updateColumns.length != Object.keys(req.body).length) {
+      res.status(422).json({
+        message: `Unprocessable entity (${Object.keys(req.body)
+          .filter(
+            (key) =>
+              ![
+                "name",
+                "theme_color",
+                "parent_id",
+                "pinned",
+                "order",
+                "hidden",
+              ].includes(key)
+          )
+          .join(", ")})`,
+      })
+      return
+    }
+
     try {
       // クエリ発行
       const updateQueryResult: any = await query(
-        `UPDATE tags SET ${Object.keys(req.body)
-          .filter((key) =>
-            [
-              "name",
-              "theme_color",
-              "parent_id",
-              "pinned",
-              "order",
-              "hidden",
-            ].includes(key)
-          )
-          .map((key) => `${key} = ?`)
-          .join(", ")} WHERE user_id = ? AND id = ?;`,
-        [...Object.values<any>(req.body), user_id, tag_id]
+        `UPDATE tags SET ${updateColumns.map(
+          (column) => column.key
+        )} WHERE user_id = ? AND id = ?;`,
+        [...updateColumns.map((column) => column.value), user_id, tag_id]
       )
 
       // クエリ結果のチェック
