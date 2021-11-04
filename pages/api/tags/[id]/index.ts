@@ -78,13 +78,13 @@ export default async function handler(
       const selectQueryResult: any = await query(
         `SELECT
           parent.id, parent.name, parent.theme_color, parent.pinned, parent.\`order\`, parent.hidden,
-          CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT('{\"id\":', child.id, ',\"name\":\"', child.name, '\",\"theme_color\":\"', child.theme_color, '\",\"parent_id\":', child.parent_id, ',\"pinned\":', child.pinned, ',\"order\":', child.\`order\`, ',\"hidden\":', child.hidden, '}')), ']') as tags
+          CONCAT('[', TRIM(TRAILING ',' FROM GROUP_CONCAT('{\"id\":', childs.id, ',\"name\":\"', childs.name, '\",\"theme_color\":\"', childs.theme_color, '\",\"parent_id\":', childs.parent_id, ',\"pinned\":', childs.pinned, ',\"order\":', childs.\`order\`, ',\"hidden\":', childs.hidden, '}')), ']') as tags
         FROM
           tags parent
-        LEFT JOIN tags child ON parent.id = child.parent_id
-        WHERE parent.user_id = ? AND child.user_id = ? AND parent.id = ?
+        LEFT JOIN tags childs ON parent.id = childs.parent_id
+        WHERE parent.user_id = ? AND parent.id = ?
         GROUP BY parent.id;`,
-        [user_id, user_id, tag_id]
+        [user_id, tag_id]
       )
 
       // クエリ結果のチェック
