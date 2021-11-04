@@ -80,7 +80,7 @@ export default async function handler(
 
     // tag_idsのチェック
     if (req.body.tag_ids != undefined && !Array.isArray(req.body.tag_ids)) {
-      res.status(415).json({ message: "Unprocessable entity (tag_ids)" })
+      res.status(422).json({ message: "Unprocessable entity (tag_ids)" })
       return
     }
 

@@ -99,7 +99,7 @@ export default async function handler(
           req.body.date
         )
       ) {
-        res.status(415).json({ message: "Unprocessable entity (date)" })
+        res.status(422).json({ message: "Unprocessable entity (date)" })
         return
       }
 
@@ -111,7 +111,7 @@ export default async function handler(
           : new Date().getFullYear().toString().concat("-", req.body.date)
       )
       if (date.toString() == "Invalid Date") {
-        res.status(415).json({ message: "Unprocessable entity (date)" })
+        res.status(422).json({ message: "Unprocessable entity (date)" })
         return
       }
     }
@@ -137,7 +137,7 @@ export default async function handler(
         typeof req.body.time != "string" ||
         !/^(([0-1][0-9]|2[0-3]):[0-5][0-9])$/.test(req.body.time)
       ) {
-        res.status(415).json({ message: "Unprocessable entity (time)" })
+        res.status(422).json({ message: "Unprocessable entity (time)" })
         return
       }
       // time文字列の生成
@@ -170,7 +170,7 @@ export default async function handler(
         typeof req.body.term_id != "number" &&
         (isNaN(+req.body.term_id) || +req.body.term_id == Infinity)
       ) {
-        res.status(415).json({ message: "Unprocessable entity (term_id)" })
+        res.status(422).json({ message: "Unprocessable entity (term_id)" })
         return
       }
       term_id = +req.body.term_id
@@ -178,7 +178,7 @@ export default async function handler(
 
     // tag_idsのチェック
     if (req.body.tag_ids != undefined && !Array.isArray(req.body.tag_ids)) {
-      res.status(415).json({ message: "Unprocessable entity (tag_ids)" })
+      res.status(422).json({ message: "Unprocessable entity (tag_ids)" })
       return
     }
 
